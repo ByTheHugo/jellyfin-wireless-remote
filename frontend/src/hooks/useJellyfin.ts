@@ -42,7 +42,7 @@ const useJellyfin = () => {
       console.error(error);
     }
   }
-
+  
   useEffect(() => {
     // Cleanup for rendering
     return () => {
