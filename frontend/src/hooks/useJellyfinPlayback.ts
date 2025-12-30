@@ -1,3 +1,7 @@
+import { JELLYFIN_ACCESS_TOKEN_KEY } from '@/constants/constants';
+import { useJellyfinStore } from '@/stores/useJellyfinStore';
+import type { SessionInfoDto } from '@jellyfin/sdk/lib/generated-client/models';
+
 export type Command =
   | "Stop"
   | "Pause"
@@ -8,7 +12,11 @@ export type Command =
   | "Rewind"
   | "FastForward"
   | "PlayPause";
+
+
 const useJellyfinPlayback = () => {
+  const store = useJellyfinStore();
+
   async function playback(token: string, session: string, command: Command) {
     try {
       const res = await fetch(`http://192.168.50.66:8096/Sessions/${session}/Playing/${command}`, {
@@ -28,7 +36,36 @@ const useJellyfinPlayback = () => {
       console.error("Failed to stop playback:", err);
     }
   }
+  function persistSession(accessToken: string) {
+    sessionStorage.setItem(JELLYFIN_ACCESS_TOKEN_KEY, accessToken);
+  }
 
-  return { playback }
+  async function getPlaybackSessions(accessToken: string, serverUrl: string) {
+    try {
+      persistSession(accessToken);
+      const res = await fetch(`${serverUrl}Sessions`, {
+        headers: { "X-Emby-Token": accessToken }
+      });
+      if (!res.ok) {
+        throw new Error('There was a problem trying to fetch this request')
+      }
+      const sessions = await res.json();
+      store.setSessionList(sessions as SessionInfoDto[]);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // Check from sessions and assign to store when session selected
+  // * NowPlayingItem  (// what is running)
+  // * PlayState
+  //   {
+  //     "CanSeek": false, //If something is running
+  //     "IsPaused": false,
+  //     "IsMuted": false,
+  //     "RepeatMode": "RepeatNone",
+  //     "PlaybackOrder": "Default"
+  // }
+  return { playback, getPlaybackSessions }
 }
 export default useJellyfinPlayback

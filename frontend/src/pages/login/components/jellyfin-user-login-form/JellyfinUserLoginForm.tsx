@@ -1,16 +1,16 @@
-import { getUserApi } from '@jellyfin/sdk/lib/utils/api'
 import { PasswordInput } from "@/components/ui/password-input";
+import { JELLYFIN_ACCESS_TOKEN_KEY } from "@/constants/constants";
 import useJellyfin from "@/hooks/useJellyfin";
 import { useJellyfinStore } from "@/stores/useJellyfinStore";
 import { Field } from "@ark-ui/react";
 import { Box, Flex, IconButton, Input, Text } from "@chakra-ui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useParams } from "@tanstack/react-router";
+import { getUserApi } from '@jellyfin/sdk/lib/utils/api';
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { BiKey } from "react-icons/bi";
 import * as z from 'zod';
-import useJellyfinPlayback from '@/hooks/useJellyfinPlayback';
 
 const LoginFormSchema = z.object({
   username: z.string().min(1).max(255),
@@ -22,8 +22,6 @@ const INPUT_WITH = '280px';
 
 const JellyfinUserLoginForm = () => {
   const [loading, setLoading] = useState(false);
-  // TODO: Remove right now its here for test purposes
-  const { playback } = useJellyfinPlayback();
   const { register, handleSubmit, formState: { errors, isValid } } = useForm<LoginForm>({
     defaultValues: {
       username: "",
@@ -31,18 +29,36 @@ const JellyfinUserLoginForm = () => {
     },
     resolver: zodResolver(LoginFormSchema),
     mode: 'onChange',
-  })
-  const { serverAddress } = useParams({ from: "/login/server/$serverAddress" });
+  });
+  const navigate = useNavigate();
+  const [loginError, setLoginError] = useState<null | string>(null);
+  const { serverAddress } = useParams({ from: "/server/$serverAddress" });
   const { getApi } = useJellyfin();
   const store = useJellyfinStore();
 
   useEffect(() => {
-    getApi(serverAddress);
+    const session = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
+    if (session) {
+      navigate({
+        to: "/server/$serverAddress/sessions",
+        params: {
+          serverAddress: serverAddress,
+        }
+      })
+    } else {
+      getApi(serverAddress);
+    }
+
+    return () => {
+      store.clearSessionList();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function onSubmit(data: LoginForm) {
-    setLoading(true)
+    setLoading(true);
+    store.clearSessionList();
+    setLoginError('');
     try {
       // await getServers(data.hostUrl);
       if (!store.api) {
@@ -51,28 +67,19 @@ const JellyfinUserLoginForm = () => {
       const auth = await getUserApi(store.api).authenticateUserByName({
         authenticateUserByName: { Username: data.username, Pw: data.password }
       });
-      // [AI]
       if (auth.data.AccessToken) {
-        // TODO: Make this prettier
-        // Fetch all active sessions
-        const res = await fetch(`http://192.168.50.66:8096/Sessions`, {
-          headers: { "X-Emby-Token": auth.data.AccessToken }
-        });
-
-        const sessions = await res.json();
-        console.log(sessions[1])
-        // Find the session for this user
-        const userSession = sessions[1];
-
-        if (userSession) {
-          playback(auth.data.AccessToken, userSession.Id, 'Pause');
-        } else {
-          console.log("No active session found for this user.");
-        }
+        console.log(auth.data.AccessToken)
+        sessionStorage.setItem(JELLYFIN_ACCESS_TOKEN_KEY, auth.data.AccessToken);
+        navigate({
+          to: '/server/$serverAddress/sessions',
+          params: {
+            serverAddress: serverAddress
+          }
+        })
       }
-      // [AI]
     } catch (error) {
       console.error(error);
+      setLoginError('Unauthorized: Wrong credentials')
     } finally {
       setLoading(false);
     }
@@ -102,6 +109,7 @@ const JellyfinUserLoginForm = () => {
         <BiKey />
         Login
       </IconButton>
+      {loginError !== null && <Text color='red.500' fontSize='sm' textAlign='center'>{loginError}</Text>}
     </Flex>
   </form>;
 };

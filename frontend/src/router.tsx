@@ -1,9 +1,9 @@
 import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/react-router"
 import App from "./App"
-import Login from "./pages/login/Login"
-import JellyfinUserLoginForm from "./pages/login/components/jellyfin-user-login-form/JellyfinUserLoginForm"
 import JellyfinHostForm from "./pages/login/components/jellyfin-host-form/JellyfinHostForm"
 import JellyfinServerSelector from "./pages/login/components/jellyfin-server-selector/JellyfinServerSelector"
+import JellyfinUserLoginForm from "./pages/login/components/jellyfin-user-login-form/JellyfinUserLoginForm"
+import JellyfinSessionSelector from "./pages/login/components/jellyfin-session-selector/JellyfinSessionSelector"
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -16,15 +16,9 @@ const indexRoute = createRoute({
   component: () => <App />
 })
 
-const loginRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/login',
-  component: () => <Login />
-})
-
 const loginHostRoute = createRoute({
-  getParentRoute: () => loginRoute,
-  path: '/',
+  getParentRoute: () => indexRoute,
+  path: '/server',
   component: () => <>
     <JellyfinHostForm />
     <JellyfinServerSelector />
@@ -32,16 +26,26 @@ const loginHostRoute = createRoute({
 })
 
 const loginRouteByServerId = createRoute({
-  getParentRoute: () => loginRoute,
+  getParentRoute: () => indexRoute,
   path: '/server/$serverAddress',
   component: () => <JellyfinUserLoginForm />
+});
+
+const sessionRoute = createRoute({
+  getParentRoute: () => indexRoute,
+  path: '/server/$serverAddress/sessions',
+  component: () => <JellyfinSessionSelector />
 })
+
+// const sessionByIdRoute = createRoute({
+//   getParentRoute: () => 
+// })
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  loginRoute,
   loginHostRoute,
-  loginRouteByServerId
+  loginRouteByServerId,
+  sessionRoute
 ])
 
 declare module '@tanstack/react-router' {

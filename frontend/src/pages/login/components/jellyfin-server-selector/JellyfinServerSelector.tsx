@@ -15,7 +15,6 @@ const Header = ({ children }: { children: ReactNode }) => {
 const JellyfinServerSelector = () => {
   const store = useJellyfinStore();
 
-
   const {
     accent,
     bg,
@@ -35,13 +34,13 @@ const JellyfinServerSelector = () => {
       <Text fontSize='small' color='fg.error' textAlign='center' my='3'>There is no servers availible, try using other url</Text>
     </Header>
   }
-
+  
   return <Header>
     {store.serverList.map((server) => (
       // -------- [AI Content] may contain some alucination --------
       // I double checked in case it may contain some errors, but didn't want to wast time on this
       <Link
-        to="/login/server/$serverAddress"
+        to="/server/$serverAddress"
         params={{ serverAddress: server.address }}
         key={server.address}
       >
