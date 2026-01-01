@@ -31,12 +31,21 @@ const JellyfinSessionSelector = () => {
     from: '/server/$serverAddress/sessions',
   })
   useEffect(() => {
-    const userSession = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
-    if (userSession) {
-      getPlaybackSessions(userSession, serverAddress);
-    }
+    const getSessions = () => {
+      console.log('hi')
+      const userSession = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
+      if (userSession) {
+        getPlaybackSessions(userSession, serverAddress);
+      }
+    };
+
+    getSessions();
+    //TODO: By now i will mantain this with HTTP Polling but the right approach should be using a WebSocket
+    const intervalId = setInterval(getSessions, 5000);
+
+    return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [serverAddress]);
 
   if (!store.sessionList || (store.sessionList && store.sessionList.length === 0)) {
     return <Header>
