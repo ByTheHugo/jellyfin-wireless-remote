@@ -2,7 +2,7 @@ import useJellyfinColors from "@/hooks/useJellyfinColors";
 import { useJellyfinStore } from "@/stores/useJellyfinStore";
 import { Box, Flex, Heading, Text } from "@chakra-ui/react";
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 
 const Header = ({ children }: { children: ReactNode }) => {
   return <Flex p='3' direction='column'>
@@ -14,7 +14,6 @@ const Header = ({ children }: { children: ReactNode }) => {
 
 const JellyfinServerSelector = () => {
   const store = useJellyfinStore();
-
   const {
     accent,
     bg,
@@ -34,8 +33,9 @@ const JellyfinServerSelector = () => {
       <Text fontSize='small' color='fg.error' textAlign='center' my='3'>There is no servers availible, try using other url</Text>
     </Header>
   }
-  
+
   return <Header>
+
     {store.serverList.map((server) => (
       // -------- [AI Content] may contain some alucination --------
       // I double checked in case it may contain some errors, but didn't want to wast time on this

@@ -2,6 +2,7 @@ import type { Api, RecommendedServerInfo } from "@jellyfin/sdk";
 import type { SessionInfoDto } from "@jellyfin/sdk/lib/generated-client/models";
 import { create } from "zustand";
 
+
 interface JellyfinStore {
   serverList: null | Array<RecommendedServerInfo>
   setServerList: (serverList: Array<RecommendedServerInfo> | null) => void;
@@ -27,3 +28,5 @@ export const useJellyfinStore = create<JellyfinStore>((set) => ({
   setSessionList: (sessions) => set({ sessionList: sessions }),
   clearSessionList: () => set({ sessionList: null })
 }));
+
+export const useCurrentSession = () => useJellyfinStore((state) => state.currentSession);

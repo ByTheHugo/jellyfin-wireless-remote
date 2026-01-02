@@ -1,10 +1,10 @@
 import { JELLYFIN_ACCESS_TOKEN_KEY } from "@/constants/constants";
 import useJellyfinColors from "@/hooks/useJellyfinColors";
 import useJellyfinPlayback, { type PlaybackCommand, type SessionCommand } from "@/hooks/useJellyfinPlayback";
-import { useJellyfinStore } from "@/stores/useJellyfinStore";
+import { useCurrentSession } from "@/stores/useJellyfinStore";
 import { Center, Flex, Heading, IconButton, Text } from "@chakra-ui/react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { IoVolumeMedium, IoVolumeMute } from "react-icons/io5";
 import { LuArrowLeft } from "react-icons/lu";
 import { PiSpeakerHigh, PiSpeakerLow } from "react-icons/pi";
@@ -16,40 +16,42 @@ const JellyfinRemoteControl = () => {
   // Simple hook to trigger rerender on button press
   const colors = useJellyfinColors();
   const userSession = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
-  const { currentSession } = useJellyfinStore();
+  const currentSession = useCurrentSession();
+
+
   const { sessionId, serverAddress } = useParams({
     from: '/server/$serverAddress/sessions/$sessionId'
   })
 
-  function handlePlayback(command: PlaybackCommand) {
+  async function getSession() {
+    const accessToken = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
+    if (!accessToken) {
+      return null;
+    }
+    const session = await getCurrentSessionInfo(accessToken, sessionId, serverAddress);
+    return session;
+  }
+  const { refetch } = useQuery({
+    queryKey: ['remote-client-session', sessionId],
+    queryFn: getSession,
+    enabled: typeof sessionId == 'string'
+  })
+
+  async function handlePlayback(command: PlaybackCommand) {
     if (command == 'Stop') {
       if (!window.confirm('This will close the current player, are you sure?')) return;
     }
     if (userSession) {
-      playback(serverAddress, userSession, sessionId, command);
+      await playback(serverAddress, userSession, sessionId, command);
     }
+    await refetch();
   }
-  function handleSessionCommand(command: SessionCommand) {
+  async function handleSessionCommand(command: SessionCommand) {
     if (userSession) {
-      sessionCommand(serverAddress, userSession, sessionId, command);
+      await sessionCommand(serverAddress, userSession, sessionId, command);
     }
+    await refetch();
   }
-  async function getSession() {
-    const accessToken = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
-    if (!accessToken) {
-      return;
-    }
-    await getCurrentSessionInfo(accessToken, sessionId, serverAddress);
-
-  }
-
-  useEffect(() => {
-    getSession();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-
   return <Flex direction='column' gap='2' data-testid='JellyfinRemoteControl'>
     <Link to=".." >
       <IconButton variant='subtle'>
@@ -76,6 +78,7 @@ const JellyfinRemoteControl = () => {
       <Heading>{!currentSession?.NowPlayingItem?.SeriesName ? "Nothing is playing" : currentSession.NowPlayingItem.SeriesName}</Heading>
       <Text color='fg.muted'>{!currentSession?.NowPlayingItem?.Name ? 'N/A' : currentSession.NowPlayingItem.Name}</Text>
       <Text>{currentSession?.PlayState?.IsPaused ? 'Paused' : 'Playing'}</Text>
+      {/* PLAY BUTTON */}
       <Flex alignItems='center' gap='3'>
         <IconButton disabled={currentSession?.PlayState?.VolumeLevel === 0} size='xl' variant='solid' rounded='100%' onClick={() => handleSessionCommand('VolumeDown')}><PiSpeakerLow /></IconButton>
         <Text fontSize='xl' fontWeight='bold' >{currentSession?.PlayState?.VolumeLevel}</Text>

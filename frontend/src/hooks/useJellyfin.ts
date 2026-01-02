@@ -43,7 +43,7 @@ const useJellyfin = () => {
   }
     
   useEffect(() => {
-    // Cleanup for rendering
+    // Cleanup
     return () => {
       store.setServerList(null);
     }

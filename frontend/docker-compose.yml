@@ -1,0 +1,9 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${SERVER_PORT:-8080}:3000"
+    container_name: jellyfin_wireless_remote
+    restart: unless-stopped

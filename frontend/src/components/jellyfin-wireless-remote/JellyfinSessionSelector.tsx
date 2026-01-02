@@ -2,7 +2,7 @@ import { JELLYFIN_ACCESS_TOKEN_KEY } from "@/constants/constants";
 import useJellyfinColors from "@/hooks/useJellyfinColors";
 import useJellyfinPlayback from "@/hooks/useJellyfinPlayback";
 import { useJellyfinStore } from "@/stores/useJellyfinStore";
-import { Badge, Box, Button, Flex, Heading, Stack, Text } from "@chakra-ui/react";
+import { Badge, Box, Button, Flex, Heading, Skeleton, Stack, Text } from "@chakra-ui/react";
 import type { SessionInfoDto } from "@jellyfin/sdk/lib/generated-client/models";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
@@ -40,13 +40,19 @@ const JellyfinSessionSelector = () => {
 
     getSessions();
     //TODO: By now i will mantain this with HTTP Polling but the right approach should be using a WebSocket
-    const intervalId = setInterval(getSessions, 1000);
+    const intervalId = setInterval(getSessions, 5000);
 
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serverAddress]);
-
-  if (!store.sessionList || (store.sessionList && store.sessionList.length === 0)) {
+  if (!store.sessionList) {
+    return <Flex direction='column' gap='3'>
+      <Header>
+        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} h='108px' w='100%' />)}
+      </Header>
+    </Flex>
+  }
+  if (store.sessionList.length === 0) {
     return <Header>
       <EmptySessionComponent serverAddress={serverAddress} />
     </Header>

@@ -49,7 +49,6 @@ const useJellyfinPlayback = () => {
     }
   }
   async function sessionCommand(serverAddress: string, token: string, sessionId: string, command: SessionCommand) {
-
     try {
       const res = await fetch(`${serverAddress}Sessions/${sessionId}/Command/${command}`, {
         method: 'POST',
@@ -65,7 +64,6 @@ const useJellyfinPlayback = () => {
         const error = await res.json();
         throw new Error(JSON.stringify(error));
       }
-
     } catch (err) {
       console.error("Failed to use playback:", err);
     }
@@ -97,7 +95,7 @@ const useJellyfinPlayback = () => {
       });
       if (response.status === 401) {
         goBackToLogin(serverUrl);
-        return;
+        return null;
       }
       if (!response.ok) {
         throw new Error('There was a problem trying to fetch this request')
@@ -109,6 +107,7 @@ const useJellyfinPlayback = () => {
         throw new Error("The session you are trying to find does not exists");
       }
       store.setCurrentSession(currentSession);
+      return currentSession;
     } catch (error) {
       console.error(error);
     }
