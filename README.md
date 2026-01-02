@@ -6,6 +6,10 @@ Jellyfin Wireless Remote is a SO agnostic SPA for remote usage of your Jellyfin 
 
 > This app was built using [Jellyfin SDK]('https://github.com/jellyfin/jellyfin-sdk-typescript') and [Jellyfin API]('https://api.jellyfin.org/')
 
+[Quick demostration Video](https://youtu.be/WuA-TMfj0tQ)
+
+[Demo Webpage](https://jellyfin-wireless-remote.vercel.app/)
+
 ## How do i install it?
 
 You must have `docker` or `podman`, since *Docker* is the most popular among devs i will provide a docker guide, but works the same changing the word `podman` for `docker`, indeed i use podman.
