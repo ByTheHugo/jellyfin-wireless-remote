@@ -42,7 +42,7 @@ const sessionRoute = createRoute({
 
 const sessionByIdRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/server/$serverAddress/sessions/$serverId",
+  path: "/server/$serverAddress/sessions/$sessionId",
   component: () => <JellyfinRemoteControl />
 })
 
