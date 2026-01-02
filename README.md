@@ -13,6 +13,8 @@ You must have `docker` or `podman`, since *Docker* is the most popular among dev
 ```bash
 # Clone the repo
 git clone https://github.com/jnunez2301/jellyfin-wireless-remote.git
+# Go to repo directory
+cd jellyfin-wireless-remote
 
 # build and run detached
 sudo docker compose up -d
