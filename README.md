@@ -10,6 +10,8 @@ Jellyfin Wireless Remote is a SO agnostic SPA for remote usage of your Jellyfin 
 
 [Demo Webpage](https://jellyfin-wireless-remote.vercel.app/)
 
+> Feel free to use the Demo Webpage as your wireless remote, but i would highly recommend to selfhost your own instance for privacy.
+
 ## How do i install it?
 
 You must have `docker` or `podman`, since *Docker* is the most popular among devs i will provide a docker guide, but works the same changing the word `podman` for `docker`, indeed i use podman.
