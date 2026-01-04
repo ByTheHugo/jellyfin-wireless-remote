@@ -3,8 +3,9 @@ import useJellyfinPlayback from "@/hooks/useJellyfinPlayback";
 import { useJellyfinStore } from "@/stores/useJellyfinStore";
 import { Badge, Box, Button, Flex, Heading, IconButton, Skeleton, Stack, Text } from "@chakra-ui/react";
 import type { SessionInfoDto } from "@jellyfin/sdk/lib/generated-client/models";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { LuArrowLeft } from "react-icons/lu";
 
 const Header = ({ children }: { children: ReactNode }) => {
@@ -35,17 +36,12 @@ const JellyfinSessionSelector = () => {
   const { serverAddress } = useParams({
     from: '/server/$serverAddress/sessions',
   })
-  useEffect(() => {
-    const getSessions = () => {
-      getPlaybackSessions(serverAddress);
-    };
 
-    getSessions();
-    const intervalId = setInterval(getSessions, 5000);
-
-    return () => clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverAddress]);
+  useQuery({
+    queryKey: ['session-list', serverAddress],
+    queryFn: () => getPlaybackSessions(serverAddress),
+    refetchInterval: 5000
+  })
 
   if (!store.sessionList) {
     return <Flex direction='column' gap='3'>
