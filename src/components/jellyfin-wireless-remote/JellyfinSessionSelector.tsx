@@ -1,6 +1,7 @@
-import { JELLYFIN_ACCESS_TOKEN_KEY } from "@/constants/constants";
 import useJellyfinColors from "@/hooks/useJellyfinColors";
 import useJellyfinPlayback from "@/hooks/useJellyfinPlayback";
+import { LocalSession } from "@/models/LocalSession";
+import { UserSession } from "@/models/UserSession";
 import { useJellyfinStore } from "@/stores/useJellyfinStore";
 import { Badge, Box, Button, Flex, Heading, IconButton, Skeleton, Stack, Text } from "@chakra-ui/react";
 import type { SessionInfoDto } from "@jellyfin/sdk/lib/generated-client/models";
@@ -38,7 +39,7 @@ const JellyfinSessionSelector = () => {
   })
   useEffect(() => {
     const getSessions = () => {
-      const userSession = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
+      const userSession = new UserSession(new LocalSession()).getSession();
       if (userSession) {
         getPlaybackSessions(userSession, serverAddress);
       }

@@ -1,6 +1,7 @@
-import { JELLYFIN_ACCESS_TOKEN_KEY } from "@/constants/constants";
 import useJellyfinColors from "@/hooks/useJellyfinColors";
 import useJellyfinPlayback, { type PlaybackCommand, type SessionCommand } from "@/hooks/useJellyfinPlayback";
+import { LocalSession } from "@/models/LocalSession";
+import { UserSession } from "@/models/UserSession";
 import { useCurrentSession } from "@/stores/useJellyfinStore";
 import { Center, Flex, Heading, IconButton, Text } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +18,7 @@ const JellyfinRemoteControl = () => {
   const { getCurrentSessionInfo } = useJellyfinPlayback();
   // Simple hook to trigger rerender on button press
   const colors = useJellyfinColors();
-  const userSession = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
+  const userSession = new UserSession(new LocalSession()).getSession();
   const currentSession = useCurrentSession();
 
 
@@ -26,11 +27,10 @@ const JellyfinRemoteControl = () => {
   })
 
   async function getSession() {
-    const accessToken = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
-    if (!accessToken) {
+    if (!userSession) {
       return null;
     }
-    const session = await getCurrentSessionInfo(accessToken, sessionId, serverAddress);
+    const session = await getCurrentSessionInfo(userSession, sessionId, serverAddress);
     return session;
   }
   const { refetch } = useQuery({

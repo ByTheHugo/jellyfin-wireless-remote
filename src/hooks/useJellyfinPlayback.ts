@@ -1,4 +1,5 @@
-import { JELLYFIN_ACCESS_TOKEN_KEY } from '@/constants/constants';
+import { LocalSession } from '@/models/LocalSession';
+import { UserSession } from '@/models/UserSession';
 import { useJellyfinStore } from '@/stores/useJellyfinStore';
 import type { SessionInfoDto } from '@jellyfin/sdk/lib/generated-client/models';
 import { useNavigate } from '@tanstack/react-router';
@@ -19,9 +20,10 @@ export type SessionCommand = 'VolumeDown' | 'VolumeUp' | 'ToggleMute' | 'MoveRig
 const useJellyfinPlayback = () => {
   const store = useJellyfinStore();
   const navigate = useNavigate();
+  const sessionProvider = new UserSession(new LocalSession());
 
   function goBackToLogin(serverAddress: string) {
-    sessionStorage.clear();
+    sessionProvider.clearSession();
     navigate({
       to: '/server/$serverAddress/sessions',
       params: {
@@ -71,7 +73,7 @@ const useJellyfinPlayback = () => {
 
   async function getPlaybackSessions(accessToken: string, serverUrl: string) {
     try {
-      sessionStorage.setItem(JELLYFIN_ACCESS_TOKEN_KEY, accessToken);
+      sessionProvider.setSession(accessToken);
       const res = await fetch(`${serverUrl}Sessions`, {
         headers: { "X-Emby-Token": accessToken }
       });
