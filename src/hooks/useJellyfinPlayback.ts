@@ -1,7 +1,10 @@
-import { JELLYFIN_ACCESS_TOKEN_KEY } from '@/constants/constants';
+import { INITIAL_CLIENT_INFO } from '@/constants/constants';
+import { LocalSession } from '@/models/LocalSession';
+import { UserSession } from '@/models/UserSession';
 import { useJellyfinStore } from '@/stores/useJellyfinStore';
 import type { SessionInfoDto } from '@jellyfin/sdk/lib/generated-client/models';
 import { useNavigate } from '@tanstack/react-router';
+import axios from 'axios';
 
 export type PlaybackCommand =
   | "Stop"
@@ -14,14 +17,15 @@ export type PlaybackCommand =
   | "FastForward"
   | "PlayPause";
 
-export type SessionCommand = 'VolumeDown' | 'VolumeUp' | 'ToggleMute' | 'MoveRight' | 'MoveLeft';
+export type SessionCommand = 'VolumeDown' | 'VolumeUp' | 'ToggleMute' | 'MoveRight' | 'MoveLeft' | 'Mute' | 'UnMute';
 
 const useJellyfinPlayback = () => {
   const store = useJellyfinStore();
   const navigate = useNavigate();
+  const sessionProvider = new UserSession(new LocalSession());
 
   function goBackToLogin(serverAddress: string) {
-    sessionStorage.clear();
+    sessionProvider.clearSession();
     navigate({
       to: '/server/$serverAddress/sessions',
       params: {
@@ -30,12 +34,16 @@ const useJellyfinPlayback = () => {
     });
   }
 
-  async function playback(serverAddress: string, token: string, sessionId: string, command: PlaybackCommand) {
+  async function playback(serverAddress: string, sessionId: string, command: PlaybackCommand) {
     try {
+      const accessToken = sessionProvider.getSession();
+      if (!accessToken) {
+        throw new Error("Acces token is not availible, try to log in again")
+      }
       const res = await fetch(`${serverAddress}Sessions/${sessionId}/Playing/${command}`, {
         method: 'POST',
         headers: {
-          "X-Emby-Token": token
+          "X-Emby-Token": accessToken
         }
       });
 
@@ -43,17 +51,21 @@ const useJellyfinPlayback = () => {
         const error = await res.json();
         throw new Error(JSON.stringify(error));
       }
-
+      await getCurrentSessionInfo(sessionId, serverAddress)
     } catch (err) {
       console.error("Failed to use playback:", err);
     }
   }
-  async function sessionCommand(serverAddress: string, token: string, sessionId: string, command: SessionCommand) {
+  async function sessionCommand(serverAddress: string, sessionId: string, command: SessionCommand) {
     try {
+      const accessToken = sessionProvider.getSession();
+      if (!accessToken) {
+        throw new Error("Acces token is not availible, try to log in again")
+      }
       const res = await fetch(`${serverAddress}Sessions/${sessionId}/Command/${command}`, {
         method: 'POST',
         headers: {
-          "X-Emby-Token": token
+          "X-Emby-Token": accessToken
         }
       });
       if (res.status === 401) {
@@ -64,43 +76,57 @@ const useJellyfinPlayback = () => {
         const error = await res.json();
         throw new Error(JSON.stringify(error));
       }
+      // Refresh session
+      const session = await getCurrentSessionInfo(sessionId, serverAddress)
+      return session;
     } catch (err) {
       console.error("Failed to use playback:", err);
     }
   }
 
-  async function getPlaybackSessions(accessToken: string, serverUrl: string) {
+  async function getPlaybackSessions(serverUrl: string) {
     try {
-      sessionStorage.setItem(JELLYFIN_ACCESS_TOKEN_KEY, accessToken);
-      const res = await fetch(`${serverUrl}Sessions`, {
+      const accessToken = sessionProvider.getSession();
+      if (!accessToken) {
+        throw new Error("Acces token is not availible, try to log in again")
+      }
+
+      const res = await axios.get(`${serverUrl}Sessions`, {
         headers: { "X-Emby-Token": accessToken }
       });
       if (res.status === 401) {
         goBackToLogin(serverUrl);
         return;
       }
-      if (!res.ok) {
-        throw new Error('There was a problem trying to fetch this request')
-      }
-      const sessions = await res.json();
-      store.setSessionList(sessions as SessionInfoDto[]);
+      const sessions = await res.data;
+
+      const sortedSessionsByPlayStatus = (sessions as SessionInfoDto[]).filter(s => s.DeviceId != INITIAL_CLIENT_INFO.deviceInfo.id).sort((sessionA, sessionB) => {
+        if (sessionA.NowPlayingItem && !sessionB.NowPlayingItem) return -1;
+        if (!sessionA.NowPlayingItem && sessionB.NowPlayingItem) return 1;
+        return 0;
+      });
+
+      store.setSessionList(sortedSessionsByPlayStatus);
+      
+      return res;
     } catch (error) {
       console.error(error);
     }
   }
-  async function getCurrentSessionInfo(accessToken: string, sessionId: string, serverUrl: string) {
+  async function getCurrentSessionInfo(sessionId: string, serverUrl: string) {
     try {
-      const response = await fetch(`${serverUrl}Sessions`, {
+      const accessToken = sessionProvider.getSession();
+      if (!accessToken) {
+        throw new Error("Acces token is not availible, try to log in again")
+      }
+      const response = await axios.get(`${serverUrl}Sessions`, {
         headers: { "X-Emby-Token": accessToken }
       });
       if (response.status === 401) {
         goBackToLogin(serverUrl);
         return null;
       }
-      if (!response.ok) {
-        throw new Error('There was a problem trying to fetch this request')
-      }
-      const sessions = await response.json();
+      const sessions = await response.data;
       const sessionList = sessions as SessionInfoDto[];
       const currentSession = sessionList.find(s => s.Id == sessionId) as SessionInfoDto
       if (!currentSession) {

@@ -1,9 +1,8 @@
-import { JELLYFIN_ACCESS_TOKEN_KEY } from "@/constants/constants";
 import useJellyfinColors from "@/hooks/useJellyfinColors";
 import useJellyfinPlayback, { type PlaybackCommand, type SessionCommand } from "@/hooks/useJellyfinPlayback";
 import { useCurrentSession } from "@/stores/useJellyfinStore";
 import { Center, Flex, Heading, IconButton, Text } from "@chakra-ui/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { IoVolumeMedium, IoVolumeMute } from "react-icons/io5";
 import { LuArrowLeft } from "react-icons/lu";
@@ -15,9 +14,10 @@ const BOTTOM_COMMAND_BUTTONS_SIZE = '64px';
 const JellyfinRemoteControl = () => {
   const { playback, sessionCommand } = useJellyfinPlayback();
   const { getCurrentSessionInfo } = useJellyfinPlayback();
+  const queryClient = useQueryClient();
   // Simple hook to trigger rerender on button press
   const colors = useJellyfinColors();
-  const userSession = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
+  // Playback Session
   const currentSession = useCurrentSession();
 
 
@@ -25,34 +25,24 @@ const JellyfinRemoteControl = () => {
     from: '/server/$serverAddress/sessions/$sessionId'
   })
 
-  async function getSession() {
-    const accessToken = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
-    if (!accessToken) {
-      return null;
-    }
-    const session = await getCurrentSessionInfo(accessToken, sessionId, serverAddress);
-    return session;
-  }
-  const { refetch } = useQuery({
+  useQuery({
     queryKey: ['remote-client-session', sessionId],
-    queryFn: getSession,
-    enabled: typeof sessionId == 'string'
+    queryFn: () => getCurrentSessionInfo(sessionId, serverAddress),
+    enabled: typeof sessionId == 'string',
   })
+  
+  const invalidateQuery = () => queryClient.invalidateQueries({ queryKey: ['remote-client-session', sessionId] });
 
   async function handlePlayback(command: PlaybackCommand) {
     if (command == 'Stop') {
       if (!window.confirm('This will close the current player, are you sure?')) return;
     }
-    if (userSession) {
-      await playback(serverAddress, userSession, sessionId, command);
-    }
-    await refetch();
+    await playback(serverAddress, sessionId, command);
+    invalidateQuery();
   }
   async function handleSessionCommand(command: SessionCommand) {
-    if (userSession) {
-      await sessionCommand(serverAddress, userSession, sessionId, command);
-    }
-    await refetch();
+    await sessionCommand(serverAddress, sessionId, command);
+    invalidateQuery();
   }
   return <Flex direction='column' gap='2' data-testid='JellyfinRemoteControl'>
     <Link to=".." >
@@ -87,7 +77,7 @@ const JellyfinRemoteControl = () => {
         <IconButton disabled={currentSession?.PlayState?.VolumeLevel === 100} size='2xl' variant='solid' rounded='100%' onClick={() => handleSessionCommand('VolumeUp')}><PiSpeakerHigh /></IconButton>
       </Flex>
       {/* MUTE BUTTON */}
-      <IconButton size='xl' variant={currentSession?.PlayState?.IsMuted ? "solid" : 'subtle'} p='3' my='2' onClick={() => handleSessionCommand('ToggleMute')}>
+      <IconButton size='xl' variant={currentSession?.PlayState?.IsMuted ? "solid" : 'subtle'} p='3' my='2' onClick={() => handleSessionCommand(currentSession?.PlayState?.IsMuted ? 'UnMute' : 'Mute')}>
         {!currentSession?.PlayState?.IsMuted ? <><IoVolumeMute /> Mute</> : <><IoVolumeMedium /> Unmute</>}
       </IconButton>
     </Flex>

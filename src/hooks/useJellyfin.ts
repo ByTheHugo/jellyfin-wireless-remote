@@ -1,17 +1,9 @@
+import { INITIAL_CLIENT_INFO } from '@/constants/constants';
 import { useJellyfinStore } from '@/stores/useJellyfinStore';
 import { Api, Jellyfin, type RecommendedServerInfo } from '@jellyfin/sdk';
 import { useEffect } from 'react';
 
-const INITIAL_CLIENT_INFO = {
-  clientInfo: {
-    name: 'My Client Application',
-    version: '1.0.0'
-  },
-  deviceInfo: {
-    name: 'Device Name',
-    id: 'unique-device-id'
-  }
-}
+
 
 const useJellyfin = () => {
   const store = useJellyfinStore();

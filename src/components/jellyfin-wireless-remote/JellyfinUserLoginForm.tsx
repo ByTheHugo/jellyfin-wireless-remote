@@ -1,6 +1,7 @@
 import { PasswordInput } from "@/components/ui/password-input";
-import { JELLYFIN_ACCESS_TOKEN_KEY } from "@/constants/constants";
 import useJellyfin from "@/hooks/useJellyfin";
+import { LocalSession } from "@/models/LocalSession";
+import { UserSession } from "@/models/UserSession";
 import { useJellyfinStore } from "@/stores/useJellyfinStore";
 import { Field } from "@ark-ui/react";
 import { Box, Flex, IconButton, Input, Text } from "@chakra-ui/react";
@@ -37,7 +38,7 @@ const JellyfinUserLoginForm = () => {
   const store = useJellyfinStore();
 
   useEffect(() => {
-    const session = sessionStorage.getItem(JELLYFIN_ACCESS_TOKEN_KEY);
+    const session = new UserSession(new LocalSession()).getSession();
     if (session) {
       navigate({
         to: "/server/$serverAddress/sessions",
@@ -68,7 +69,9 @@ const JellyfinUserLoginForm = () => {
         authenticateUserByName: { Username: data.username, Pw: data.password }
       });
       if (auth.data.AccessToken) {
-        sessionStorage.setItem(JELLYFIN_ACCESS_TOKEN_KEY, auth.data.AccessToken);
+        const sessionProvider = new UserSession(new LocalSession());
+        sessionProvider.setSession(auth.data.AccessToken);
+
         navigate({
           to: '/server/$serverAddress/sessions',
           params: {
